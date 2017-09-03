@@ -1,5 +1,7 @@
 # pgn-splitter
 
+[![Build Status](https://travis-ci.org/chesszebra/pgn-splitter.svg?branch=master)](https://travis-ci.org/chesszebra/pgn-splitter)
+
 A PHP library to split PGN files into chunks per game.
 
 ## Installation
