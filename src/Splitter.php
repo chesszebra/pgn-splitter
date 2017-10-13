@@ -13,6 +13,9 @@ use ChessZebra\Chess\Pgn\Exception\InvalidStreamException;
 
 final class Splitter
 {
+    const SPLIT_GAMES = 0;
+    const SPLIT_CHUNKS = 1;
+
     const STATE_TAGS = 0;
     const STATE_MOVES = 1;
 
@@ -24,24 +27,33 @@ final class Splitter
     private $stream;
 
     /**
+     * The mode to split the stream on.
+     *
+     * @var int
+     */
+    private $mode;
+
+    /**
      * Initializes a new instance of this class.
      *
      * @param resource $stream The stream to split.
-     * @throws InvalidStreamException
+     * @param int $mode The mode to split on.
+     * @throws InvalidStreamException Thrown when an invalid stream is provided.
      */
-    public function __construct($stream)
+    public function __construct($stream, int $mode = self::SPLIT_GAMES)
     {
         if (!is_resource($stream)) {
             throw new InvalidStreamException('The provided stream is not a valid resource.');
         }
 
         $this->stream = $stream;
+        $this->mode = $mode;
     }
 
     /**
-     * Splits the stream into loose pgn files which stored in the given directory.
+     * Splits the stream into loose chunks and provides them to the given callback.
      *
-     * @param callable $callback The callback that is called for each splitted file.
+     * @param callable $callback The callback that is called for each found chunk.
      * @return int Returns the amount of chunks found in the stream.
      */
     public function split(callable $callback): int
@@ -64,12 +76,17 @@ final class Splitter
                 $buffer .= $line;
 
                 if ($line[0] !== '[') {
+                    if ($this->mode === self::SPLIT_CHUNKS) {
+                        $result++;
+                        $callback($buffer);
+                        $buffer = '';
+                    }
+
                     $state = self::STATE_MOVES;
                 }
             } elseif ($state === self::STATE_MOVES && $line === "\n") {
                 $result++;
                 $callback($buffer);
-
                 $buffer = '';
 
                 $state = self::STATE_TAGS;

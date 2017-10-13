@@ -1,6 +1,6 @@
 {
     "name": "chesszebra/pgn-splitter",
-    "description": "A PHP library to split PGN files into chunks per game.",
+    "description": "A PHP library to split PGN files into chunks per game or per section.",
     "license": "MIT",
     "type": "library",
     "require": {

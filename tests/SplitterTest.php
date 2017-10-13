@@ -13,6 +13,17 @@ use PHPUnit\Framework\TestCase;
 
 final class SplitterTest extends TestCase
 {
+    private function createStream(string $content)
+    {
+        $stream = fopen('php://memory','r+');
+
+        fwrite($stream, $content);
+
+        rewind($stream);
+
+        return $stream;
+    }
+
     /**
      * @expectedException \ChessZebra\Chess\Pgn\Exception\InvalidStreamException
      * @expectedExceptionCode 0
@@ -86,14 +97,17 @@ final class SplitterTest extends TestCase
         static::assertEquals(1, $result);
     }
 
-    private function createStream(string $content)
+    public function testSplitPerChunk()
     {
-        $stream = fopen('php://memory','r+');
+        // Arrange
+        $stream = $this->createStream("[A]\n[B]\n\n*");
+        $splitter = new Splitter($stream, Splitter::SPLIT_CHUNKS);
+        $callback = function(string $buffer) { };
 
-        fwrite($stream, $content);
+        // Act
+        $result = $splitter->split($callback);
 
-        rewind($stream);
-
-        return $stream;
+        // Assert
+        static::assertEquals(2, $result);
     }
 }
