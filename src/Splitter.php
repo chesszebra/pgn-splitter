@@ -16,8 +16,9 @@ final class Splitter
     const SPLIT_GAMES = 0;
     const SPLIT_CHUNKS = 1;
 
-    const STATE_TAGS = 0;
-    const STATE_MOVES = 1;
+    const STATE_LIMBO = 0;
+    const STATE_TAGS = 1;
+    const STATE_MOVES = 2;
 
     /**
      * The stream to split.
@@ -32,6 +33,20 @@ final class Splitter
      * @var int
      */
     private $mode;
+
+    /**
+     * The current state of the splitter.
+     *
+     * @var int
+     */
+    private $state;
+
+    /**
+     * The parsed buffer.
+     *
+     * @var string
+     */
+    private $buffer;
 
     /**
      * Initializes a new instance of this class.
@@ -60,8 +75,8 @@ final class Splitter
     {
         $result = 0;
 
-        $buffer = '';
-        $state = self::STATE_TAGS;
+        $this->buffer = '';
+        $this->state = self::STATE_LIMBO;
 
         while (!feof($this->stream)) {
             $line = fgets($this->stream);
@@ -72,34 +87,81 @@ final class Splitter
                 continue;
             }
 
-            if ($state === self::STATE_TAGS) {
-                $buffer .= $line;
+            switch ($this->state) {
+                case self::STATE_LIMBO:
+                    $this->parseLimbo($line);
+                    break;
 
-                if ($line[0] !== '[') {
-                    if ($this->mode === self::SPLIT_CHUNKS) {
-                        $result++;
-                        $callback($buffer);
-                        $buffer = '';
-                    }
+                case self::STATE_TAGS:
+                    $this->parseTags($callback, $result, $line);
+                    break;
 
-                    $state = self::STATE_MOVES;
-                }
-            } elseif ($state === self::STATE_MOVES && $line === "\n") {
-                $result++;
-                $callback($buffer);
-                $buffer = '';
+                case self::STATE_MOVES:
+                    $this->parseMoves($callback, $result, $line);
+                    break;
 
-                $state = self::STATE_TAGS;
-            } else {
-                $buffer .= $line;
+                default:
+                    throw new \RuntimeException(sprintf('The state "%d" is not implemented.', $this->state));
             }
         }
 
-        if ($buffer) {
+        if (trim($this->buffer) !== '') {
             $result++;
-            $callback($buffer);
+            $callback($this->buffer);
+            $this->buffer = '';
         }
 
         return $result;
+    }
+
+    private function parseLimbo(string $line)
+    {
+        if (trim($line) === '') {
+            return;
+        }
+
+        if ($line[0] === '[') {
+            $this->buffer .= $line;
+            $this->state = self::STATE_TAGS;
+        } else {
+            $this->buffer .= $line;
+            $this->state = self::STATE_MOVES;
+        }
+    }
+
+    private function parseTags(callable $callback, int &$result, string $line)
+    {
+        if ($line[0] === '[') {
+            $this->buffer .= $line;
+            return;
+        }
+
+        if ($this->mode === self::SPLIT_CHUNKS) {
+            $result++;
+
+            $callback($this->buffer);
+
+            $this->buffer = '';
+            return;
+        }
+
+        $this->buffer .= $line;
+
+        $this->state = self::STATE_MOVES;
+    }
+
+    private function parseMoves(callable $callback, int &$result, string $line)
+    {
+        if ($line === "\n") {
+            $this->state = self::STATE_LIMBO;
+
+            $result++;
+
+            $callback($this->buffer);
+
+            $this->buffer = '';
+        }
+
+        $this->buffer .= $line;
     }
 }

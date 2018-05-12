@@ -110,4 +110,38 @@ final class SplitterTest extends TestCase
         // Assert
         static::assertEquals(2, $result);
     }
+
+    public function testSplitLichessGames()
+    {
+        // Arrange
+        $stream = $this->createStream("[A]
+
+1. e4 e5
+
+
+[B]
+
+1. e4 e5
+
+
+[C]
+
+1. d4 d5
+
+
+[D]
+
+1. e4 e5
+
+
+");
+        $splitter = new Splitter($stream, Splitter::SPLIT_GAMES);
+        $callback = function(string $buffer) { };
+
+        // Act
+        $result = $splitter->split($callback);
+
+        // Assert
+        static::assertEquals(4, $result);
+    }
 }
