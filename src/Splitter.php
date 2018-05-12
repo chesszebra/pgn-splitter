@@ -136,7 +136,7 @@ final class Splitter
             return;
         }
 
-        if ($this->mode === self::SPLIT_CHUNKS) {
+        if ($this->mode === self::SPLIT_CHUNKS && trim($this->buffer) !== '') {
             $result++;
 
             $callback($this->buffer);
