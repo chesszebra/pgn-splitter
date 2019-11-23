@@ -114,10 +114,14 @@ final class Splitter
         return $result;
     }
 
-    private function parseLimbo(string $line)
+    private function parseLimbo(string $line): void
     {
         if (trim($line) === '') {
             return;
+        }
+
+        if (strlen($line) >= 3 && $line[0] === "\xEF" && $line[1] === "\xBB" && $line[2] === "\xBF") {
+            $line = substr($line, 3);
         }
 
         if ($line[0] === '[') {
@@ -129,7 +133,7 @@ final class Splitter
         }
     }
 
-    private function parseTags(callable $callback, int &$result, string $line)
+    private function parseTags(callable $callback, int &$result, string $line): void
     {
         if ($line[0] === '[') {
             $this->buffer .= $line;
@@ -150,7 +154,7 @@ final class Splitter
         $this->state = self::STATE_MOVES;
     }
 
-    private function parseMoves(callable $callback, int &$result, string $line)
+    private function parseMoves(callable $callback, int &$result, string $line): void
     {
         if ($line === "\n") {
             $this->state = self::STATE_LIMBO;
